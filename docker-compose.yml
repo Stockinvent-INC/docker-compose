@@ -8,9 +8,8 @@ services:
       test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
       timeout: 10s
       retries: 10
-    extends:
-      file: common-config.yml
-      service: network-deploy-service
+    networks:
+      - stockinvent
 
   configserver:
     image: "europe-west1-docker.pkg.dev/alpine-furnace-447215-s6/stockinvent/stockinvent/configserver:v1.0.0"
@@ -25,9 +24,14 @@ services:
       start_period: 10s
     environment:
       SPRING_APPLICATION_NAME: "configserver"
-    extends:
-      file: common-config.yml
-      service: microservice-base-config
+      SPRING_PROFILES_ACTIVE: "default"
+      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8888"
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    networks:
+      - stockinvent
 
   eurekaserver:
     image: "europe-west1-docker.pkg.dev/alpine-furnace-447215-s6/stockinvent/stockinvent/eurekaserver:v1.0.0"
@@ -45,31 +49,38 @@ services:
       start_period: 10s
     environment:
       SPRING_APPLICATION_NAME: "eurekaserver"
-    extends:
-      file: common-config.yml
-      service: microservice-configserver-config
+      SPRING_PROFILES_ACTIVE: "default"
+      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8888"
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eurekaserver:8070/eureka/"
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    networks:
+      - stockinvent
 
   user_management_database:
+    image: postgres
     container_name: user_management_database
     ports:
       - 5432:5432
     environment:
+      POSTGRES_PASSWORD: password
       POSTGRES_DB: user_management_database
-    extends:
-      file: common-config.yml
-      service: microservice-db-config
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      timeout: 10s
+      retries: 10
+      interval: 10s
+      start_period: 10s
+    networks:
+      - stockinvent
 
   user-management:
     image: "europe-west1-docker.pkg.dev/alpine-furnace-447215-s6/stockinvent/stockinvent/user-management:v1.0.0"
     container_name: user-management-ms
     ports:
       - "8080:8080"
-    healthcheck:
-      test: "curl --fail --silent localhost:8080/actuator/health/readiness | grep UP || exit 1"
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
     depends_on:
       user_management_database:
         condition: service_healthy
@@ -77,12 +88,26 @@ services:
         condition: service_healthy
       eurekaserver:
         condition: service_healthy
+    healthcheck:
+      test: "curl --fail --silent localhost:8080/actuator/health/readiness | grep UP || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     environment:
       SPRING_APPLICATION_NAME: "user-management"
       SPRING_DATASOURCE_URL: "jdbc:postgresql://user_management_database:5432/user_management_database"
-    extends:
-      file: common-config.yml
-      service: microservice-services-config
+      SPRING_DATASOURCE_USERNAME: "postgres"
+      SPRING_DATASOURCE_PASSWORD: "password"
+      SPRING_PROFILES_ACTIVE: "default"
+      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8888"
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eurekaserver:8070/eureka/"
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    networks:
+      - stockinvent
 
   gatewayserver:
     image: "europe-west1-docker.pkg.dev/alpine-furnace-447215-s6/stockinvent/stockinvent/gatewayserver:v1.0.0"
@@ -100,9 +125,15 @@ services:
       SPRING_DATA_REDIS_HOST: "redis"
       SPRING_DATA_REDIS_PORT: "6379"
       SPRING_DATA_REDIS_TIMEOUT: 1s
-    extends:
-      file: common-config.yml
-      service: microservice-eureka-config
+      SPRING_PROFILES_ACTIVE: "default"
+      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8888"
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eurekaserver:8070/eureka/"
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    networks:
+      - stockinvent
 
 networks:
   stockinvent:
