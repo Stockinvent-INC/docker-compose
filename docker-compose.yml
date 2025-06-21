@@ -1,0 +1,109 @@
+services:
+  redis:
+    image: redis:alpine3.20
+    container_name: redis2.0
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
+      timeout: 10s
+      retries: 10
+    extends:
+      file: common-config.yml
+      service: network-deploy-service
+
+  configserver:
+    image: "europe-west1-docker.pkg.dev/alpine-furnace-447215-s6/stockinvent/stockinvent/configserver:v1.0.0"
+    container_name: configserver-ms
+    ports:
+      - "8888:8888"
+    healthcheck:
+      test: "curl --fail --silent localhost:8888/actuator/health/readiness | grep UP || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    environment:
+      SPRING_APPLICATION_NAME: "configserver"
+    extends:
+      file: common-config.yml
+      service: microservice-base-config
+
+  eurekaserver:
+    image: "europe-west1-docker.pkg.dev/alpine-furnace-447215-s6/stockinvent/stockinvent/eurekaserver:v1.0.0"
+    container_name: eurekaserver-ms
+    ports:
+      - "8070:8070"
+    depends_on:
+      configserver:
+        condition: service_healthy
+    healthcheck:
+      test: "curl --fail --silent localhost:8070/actuator/health/readiness | grep UP || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    environment:
+      SPRING_APPLICATION_NAME: "eurekaserver"
+    extends:
+      file: common-config.yml
+      service: microservice-configserver-config
+
+  user_management_database:
+    container_name: user_management_database
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: user_management_database
+    extends:
+      file: common-config.yml
+      service: microservice-db-config
+
+  user-management:
+    image: "europe-west1-docker.pkg.dev/alpine-furnace-447215-s6/stockinvent/stockinvent/user-management:v1.0.0"
+    container_name: user-management-ms
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: "curl --fail --silent localhost:8080/actuator/health/readiness | grep UP || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    depends_on:
+      user_management_database:
+        condition: service_healthy
+      configserver:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_healthy
+    environment:
+      SPRING_APPLICATION_NAME: "user-management"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://user_management_database:5432/user_management_database"
+    extends:
+      file: common-config.yml
+      service: microservice-services-config
+
+  gatewayserver:
+    image: "europe-west1-docker.pkg.dev/alpine-furnace-447215-s6/stockinvent/stockinvent/gatewayserver:v1.0.0"
+    container_name: gatewayserver-ms
+    ports:
+      - "8765:8765"
+    depends_on:
+      user-management:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_APPLICATION_NAME: "gatewayserver"
+      SPRING_DATA_REDIS_CONNECT-TIMEOUT: 2s
+      SPRING_DATA_REDIS_HOST: "redis"
+      SPRING_DATA_REDIS_PORT: "6379"
+      SPRING_DATA_REDIS_TIMEOUT: 1s
+    extends:
+      file: common-config.yml
+      service: microservice-eureka-config
+
+networks:
+  stockinvent:
+    driver: "bridge"
