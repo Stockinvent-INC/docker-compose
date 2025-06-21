@@ -25,7 +25,6 @@ services:
     environment:
       SPRING_APPLICATION_NAME: "configserver"
       SPRING_PROFILES_ACTIVE: "default"
-      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8888"
     deploy:
       resources:
         limits:
@@ -50,7 +49,7 @@ services:
     environment:
       SPRING_APPLICATION_NAME: "eurekaserver"
       SPRING_PROFILES_ACTIVE: "default"
-      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8888"
+      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8888/"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eurekaserver:8070/eureka/"
     deploy:
       resources:
@@ -100,7 +99,7 @@ services:
       SPRING_DATASOURCE_USERNAME: "postgres"
       SPRING_DATASOURCE_PASSWORD: "password"
       SPRING_PROFILES_ACTIVE: "default"
-      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8888"
+      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8888/"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eurekaserver:8070/eureka/"
     deploy:
       resources:
@@ -126,7 +125,7 @@ services:
       SPRING_DATA_REDIS_PORT: "6379"
       SPRING_DATA_REDIS_TIMEOUT: 1s
       SPRING_PROFILES_ACTIVE: "default"
-      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8888"
+      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8888/"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eurekaserver:8070/eureka/"
     deploy:
       resources:
