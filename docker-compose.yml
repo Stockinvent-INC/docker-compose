@@ -12,7 +12,7 @@ services:
       - stockinvent
 
   configserver:
-    image: "europe-west1-docker.pkg.dev/alpine-furnace-447215-s6/stockinvent/stockinvent/configserver:v1.0.0"
+    image: "stockinvent/configserver:v1.0.0"
     container_name: configserver-ms
     ports:
       - "8888:8888"
@@ -33,7 +33,7 @@ services:
       - stockinvent
 
   eurekaserver:
-    image: "europe-west1-docker.pkg.dev/alpine-furnace-447215-s6/stockinvent/stockinvent/eurekaserver:v1.0.0"
+    image: "stockinvent/eurekaserver:v1.0.0"
     container_name: eurekaserver-ms
     ports:
       - "8070:8070"
@@ -76,7 +76,7 @@ services:
       - stockinvent
 
   user-management:
-    image: "europe-west1-docker.pkg.dev/alpine-furnace-447215-s6/stockinvent/stockinvent/user-management:v1.0.0"
+    image: "stockinvent/user-management:v1.0.0"
     container_name: user-management-ms
     ports:
       - "8080:8080"
@@ -109,7 +109,7 @@ services:
       - stockinvent
 
   gatewayserver:
-    image: "europe-west1-docker.pkg.dev/alpine-furnace-447215-s6/stockinvent/stockinvent/gatewayserver:v1.0.0"
+    image: "stockinvent/gatewayserver:v1.0.0"
     container_name: gatewayserver-ms
     ports:
       - "8765:8765"
